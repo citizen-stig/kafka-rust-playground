@@ -37,7 +37,7 @@ public class SimpleKafkaProducer extends KafkaBase implements Runnable {
         long index = 0;
 
         while (!stop) {
-            String value = "Data " + index + LocalDateTime.now();
+            String value = "Data from JVM: " + index + LocalDateTime.now();
             ProducerRecord<Long, String> record = new ProducerRecord<Long, String>(
                 topic,
                 index,

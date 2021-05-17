@@ -27,7 +27,7 @@ public class SimpleKafkaConsumer extends KafkaBase implements Runnable {
         this.props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         this.props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1);
         this.props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        this.props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        this.props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         this.topic = topic;
     }
 

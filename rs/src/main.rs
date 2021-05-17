@@ -3,15 +3,20 @@ extern crate log;
 extern crate chrono;
 extern crate env_logger;
 extern crate kafka;
+extern crate zerocopy;
 
 use std::time::{Duration};
+use std::convert::{TryFrom, TryInto};
 use std::str;
 
+use zerocopy::AsBytes;
+use zerocopy::byteorder::U64;
 use kafka::producer::{Producer, Record, RequiredAcks};
 use kafka::error::Error as KafkaError;
 use std::{time, thread};
 use chrono::Local;
 use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
+use byteorder::{ByteOrder, LittleEndian};
 
 /// This program demonstrates sending single message through a
 /// `Producer`.  This is a convenient higher-level client that will
@@ -48,15 +53,19 @@ fn produce(topic: &str, brokers: Vec<String>) -> Result<(), KafkaError> {
             // ~ build the producer with the above settings
             .create()?;
 
+    let mut index: u64 = 0;
     loop {
         let now = Local::now();
         let message = "hello, kafka from Rust 🧡 at ".to_owned() + &now.format("%Y-%m-%d %H:%M:%S").to_string();
         let data = message.as_bytes();
         info!("Sending to topic {:?}", topic);
+        // let mut buf = [0; 8];
+        // LittleEndian::write_u64(&mut buf, index);
+        // let key: [u8] = buf.try_into()?;
         let record = Record {
             topic,
             partition: -1,
-            key: "31337".as_bytes(),
+            key: index.as_bytes(),
             value: data,
         };
         match producer.send(&record) {
@@ -64,6 +73,7 @@ fn produce(topic: &str, brokers: Vec<String>) -> Result<(), KafkaError> {
             Err(e) => error!("Failed to produce message: {:?}", e),
         };
         thread::sleep(sleep_duration);
+        index += 1;
     }
 }
 
@@ -81,7 +91,7 @@ fn consume(group: String, topic: String, brokers: Vec<String>) -> Result<(), Kaf
         let mss = con.poll()?;
         if mss.is_empty() {
             // info!("No messages available right now.");
-            continue
+            continue;
         }
 
         for ms in mss.iter() {
@@ -93,7 +103,7 @@ fn consume(group: String, topic: String, brokers: Vec<String>) -> Result<(), Kaf
                         "__invalid__"
                     }
                 };
-                info!("Consumed {}:{}@{}: {:?}", ms.topic(), ms.partition(), m.offset, s);
+                info!("Consumed {}:{}@{}: key={:?}, data={:?}", ms.topic(), ms.partition(), m.offset, m.key, s);
             }
             let _ = con.consume_messageset(ms);
         }
